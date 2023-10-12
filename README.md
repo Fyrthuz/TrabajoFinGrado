@@ -53,4 +53,9 @@ https://www.youtube.com/watch?v=SZvwDqSPuTU
 
 docker run "nombre_contenedor"
 
+# Archivos
+Unet.ipynb ---> Hace el entrenamiento de las diferentes arquitecturas de segmentacion
+Clasificacion.ipynb ---> Hace el entrenamiento de las diferentes arquitecturas de clasificacion
+Memoria.pdf ---> Resumen del trabajo completo
+
 
