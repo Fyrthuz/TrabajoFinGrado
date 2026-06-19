@@ -1,61 +1,132 @@
-# TFG
-Clasificador de nanoparticulas
+# NanoParticle Analyzer
 
-# ANOTACIONES
-Los modelos no están subidos debido a que son muy pesados para subirlos a Github.
+Clasificador y analizador de nanopartículas a partir de imágenes de microscopía electrónica de transmisión (TEM). Este proyecto forma parte de un Trabajo de Fin de Grado.
 
-# Versiones
-Python 3.10
+## Descripción
 
-# Librerias
-numpy
+Herramienta de visión por computador que utiliza deep learning para segmentar, clasificar y medir nanopartículas en imágenes TEM. El flujo de trabajo completo es:
 
-tensorflow
+1. **Carga** de una imagen `.tif` mediante interfaz gráfica (PyQt5).
+2. **Preprocesado** opcional (denoising, contraste, eliminación automática de la escala).
+3. **Segmentación** de nanopartículas con una red U-Net entrenada.
+4. **Post-procesado** con watershed para separar partículas solapadas.
+5. **Clasificación** de cada partícula en 5 formas geométricas mediante una red densa.
+6. **Medición** del área de cada partícula en unidades reales usando la barra de escala.
+7. **Visualización** con mapa de color y histogramas por clase.
 
-open-cv2
+## Clases de clasificación
 
-PySimpleGUI
+| Forma        | Color |
+|--------------|-------|
+| Bipirámides  | Rojo  |
+| Hexágonos    | Verde |
+| Círculos     | Azul  |
+| Cuadrados    | Rosa  |
+| Rectángulos  | Cyan  |
 
-matplotlib
+## Requisitos
 
-# Instalacion librerias
-pip install opencv-python
+- Python 3.10
+- TensorFlow 2.11.0
+- OpenCV 4.7.0
+- PyQt5 5.15.9
+- Matplotlib 3.7.1
+- NumPy 1.23.5
 
-pip install tensorflow
+## Instalación
 
-pip install numpy
+```bash
+pip install -r requirements.txt
+```
 
-pip install PySimpleGUI
+## Uso
 
-pip install matplotlib
-
-# Ejecucion
+```bash
 python GUI.py
+```
 
-# Aclaraciones
-Para meter la escala manualmente clickar en "Introducir Escala" indicar el valor
-y dibujar una linea en la imagen.
+### Funcionalidades de la interfaz
 
-Tambien se puede aumentar el contraste y el ruido de la imagen para mejorar el resultado de la prediccion en algunos casos.
+- **Cargar imagen**: Botón *Browse* para seleccionar archivos `.tif`.
+- **Escala manual**: *"Introducir Escala"* → indicar el valor real y dibujar una línea en la imagen.
+- **Escala automática**: Activarla en *Opciones* para leer el valor directamente de la barra de escala.
+- **Tamaño de entrada**: Ajustable desde 256×256 hasta 1984×1984 (pasos de 64 píxeles). Tamaños menores dan más error en las medidas; tamaños mayores pueden clasificar píxeles de fondo como partículas.
+- **Preprocesado**: Denoising (Gaussian blur) y aumento de contraste (CLAHE) configurables en *Opciones*.
+- **Watershed**: Aplicado por defecto para separar partículas que se tocan entre sí.
 
-Se puede elegir el tamano pero cuanto menos tamano mas error en las medidas y cuanto mayor tamano se clasificaran pixeles como particulas cuando no lo son.
+### Flujo de trabajo
 
-Tambien se aplica watershed por defecto para minimizar el hecho de las particulas que se tocan entre si, esta decision viene de la mano de la limitacion en los datos de entrenamiento.
+1. Seleccionar una imagen y ajustar escala/tamaño/opciones.
+2. Pulsar *"Segmentar"* y esperar a que se genere la máscara.
+3. En la ventana de segmentación, pulsar *"Iniciar Clasificación"*.
+4. Tras el procesado, se mostrará un histograma con la distribución de tamaños por clase.
 
-Esperar a que se segmente y veras el resultado por pantalla, para continuar e iniciar la clasificacion, tras un tiempo se mostrara un histograma con los tamanos medidos
+## Estructura del proyecto
 
-# ATENCION
-para ejecutar con docker windows descargar esto
-https://sourceforge.net/projects/vcxsrv/files/latest/download
+```
+├── GUI.py                         # Interfaz gráfica de usuario (PyQt5)
+├── SegmentationModule.py          # Módulo de segmentación, clasificación y análisis
+├── UNet.ipynb                     # Entrenamiento de modelos de segmentación (U-Net)
+├── Clasificacion.ipynb            # Entrenamiento del clasificador de formas
+├── gui.ui                         # Diseño Qt Designer de la ventana principal
+├── segmented_window.ui            # Diseño Qt Designer de la ventana de segmentación
+├── histogram.ui                   # Diseño Qt Designer de la ventana de histograma
+├── Dockerfile                     # Contenedor para ejecutar la aplicación
+├── requirements.txt               # Dependencias de Python
+├── Memoria.pdf                    # Documento completo del TFG
+├── scale.jpg                      # Imagen de referencia para la escala
+└── README.md                      # Este archivo
+```
 
-Ejemplo ejecucion contenedor:
-https://www.youtube.com/watch?v=SZvwDqSPuTU
+## Entrenamiento de modelos
 
-docker run "nombre_contenedor"
+### Segmentación (`UNet.ipynb`)
 
-# Archivos
-Unet.ipynb ---> Hace el entrenamiento de las diferentes arquitecturas de segmentacion
-Clasificacion.ipynb ---> Hace el entrenamiento de las diferentes arquitecturas de clasificacion
-Memoria.pdf ---> Resumen del trabajo completo
+- Dataset: [TEM-Nano-Particle-Cell-Dataset](https://github.com/ivanv99/TEM-Nano-Particle-Cell-Dataset) (público).
+- Arquitectura: U-Net con codificador (64→128→256→512), bottleneck (1024) y decodificador con conexiones skip.
+- Aumento de datos: rotación, desplazamiento, shear, zoom, flip horizontal.
+- Modelo generado: `modeloPropio.h5`.
 
+### Clasificación (`Clasificacion.ipynb`)
 
+- Dataset: Imágenes propias del CIQUS (no incluidas en el repositorio por ser propiedad del centro).
+- Arquitectura: Red densa de 6 capas (2048→512→256→256→128→128→64→5) con softmax.
+- Aumento de datos: rotación y flip aleatorios (mínimo 140 muestras por clase).
+- Modelo generado: `modelo_denso_prueba_variacion_pardo.h5`.
+
+> **Nota:** Los modelos entrenados no están incluidos en el repositorio debido a su tamaño. Deben generarse ejecutando los notebooks correspondientes.
+
+## Docker
+
+### Windows (con VcXsrv)
+
+1. Descargar e instalar [VcXsrv](https://sourceforge.net/projects/vcxsrv/files/latest/download).
+2. Construir y ejecutar el contenedor:
+
+```bash
+docker build -t nanoparticle-analyzer .
+docker run nanoparticle-analyzer
+```
+
+[Tutorial en vídeo](https://www.youtube.com/watch?v=SZvwDqSPuTU)
+
+### Linux
+
+```bash
+docker build -t nanoparticle-analyzer .
+docker run --net=host -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix nanoparticle-analyzer
+```
+
+## Limitaciones conocidas
+
+- El tamaño de entrada influye en la precisión de las medidas: menor tamaño → más error; mayor tamaño → más falsos positivos.
+- El watershed se aplica por defecto para mitigar partículas solapadas, decisión condicionada por la limitación en los datos de entrenamiento.
+- El módulo de clasificación requiere imágenes de entrenamiento propiedad del CIQUS, no disponibles públicamente.
+
+## Autor
+
+Trabajo de Fin de Grado — Universidad de Santiago de Compostela
+
+## Licencia
+
+Este proyecto es de carácter académico. Los datos de entrenamiento del clasificador son propiedad del CIQUS.
